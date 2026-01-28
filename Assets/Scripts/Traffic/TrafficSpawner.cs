@@ -29,6 +29,7 @@ public class TrafficSpawner : MonoBehaviour
     public float spawnCooldown = 0.35f;
 
     readonly List<TrafficCar> active = new List<TrafficCar>();
+    public IReadOnlyList<TrafficCar> ActiveCars => active;
     float nextSpawnTime;
 
     void Start()
@@ -43,14 +44,14 @@ public class TrafficSpawner : MonoBehaviour
 
     void Update()
     {
-        // DespawnFarBehind();
+        DespawnFarBehind();
 
-        // if (Time.time < nextSpawnTime) return;
-        // if (active.Count >= maxCarsActive) return;
+        if (Time.time < nextSpawnTime) return;
+        if (active.Count >= maxCarsActive) return;
 
-        // bool spawned = TrySpawnFair(spawnAttemptsPerTick);
-        // nextSpawnTime = Time.time + spawnCooldown;
-        // if (!spawned) nextSpawnTime = Time.time + spawnCooldown * 0.6f; // thử lại sớm hơn chút nếu fail
+        bool spawned = TrySpawnFair(spawnAttemptsPerTick);
+        nextSpawnTime = Time.time + spawnCooldown;
+        if (!spawned) nextSpawnTime = Time.time + spawnCooldown * 0.6f; // thử lại sớm hơn chút nếu fail
     }
 
     bool TrySpawnFair(int attempts)
