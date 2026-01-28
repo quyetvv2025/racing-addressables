@@ -29,6 +29,8 @@ public class PlayerCarMotor : MonoBehaviour
     float targetForwardSpeed;
     Vector3 startPos;
 
+    public float minSpeed = 15f; // luôn chạy tối thiểu 15
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -43,6 +45,18 @@ public class PlayerCarMotor : MonoBehaviour
         }
 
         targetForwardSpeed = 15f; // base forward speed so car always moves
+        
+        // Remove friction to avoid slowing down due to ground contact
+        Collider col = GetComponent<Collider>();
+        if (col != null)
+        {
+            PhysicsMaterial pm = new PhysicsMaterial("ZeroFriction");
+            pm.dynamicFriction = 0f;
+            pm.staticFriction = 0f;
+            pm.frictionCombine = PhysicsMaterialCombine.Minimum;
+            pm.bounceCombine = PhysicsMaterialCombine.Minimum;
+            col.material = pm;
+        }
     }
 
     void FixedUpdate()
@@ -63,7 +77,7 @@ public class PlayerCarMotor : MonoBehaviour
         if (brake > 0f)
             targetForwardSpeed -= brakeDecel * brake * Time.fixedDeltaTime;
 
-        targetForwardSpeed = Mathf.Clamp(targetForwardSpeed, 0f, maxSpeed);
+        targetForwardSpeed = Mathf.Clamp(targetForwardSpeed, minSpeed, maxSpeed);
 
         // Approach target speed smoothly
         float newForward = Mathf.MoveTowards(curForward, targetForwardSpeed, accel * Time.fixedDeltaTime);
@@ -87,7 +101,24 @@ public class PlayerCarMotor : MonoBehaviour
         // 4) Clamp X to road bounds (avoid flying off road)
         Vector3 p = rb.position;
         float limit = Mathf.Max(0f, clampHalfWidth - clampPadding);
-        p.x = Mathf.Clamp(p.x, startPos.x - limit, startPos.x + limit);
-        rb.position = p;
+        
+        // Only apply clamp if we are actually out of bounds or about to be?
+        // Checking current position is safer.
+        if (p.x < startPos.x - limit || p.x > startPos.x + limit)
+        {
+             p.x = Mathf.Clamp(p.x, startPos.x - limit, startPos.x + limit);
+             rb.position = p;
+             
+             // Optionally kill lateral velocity to stop pushing into wall
+             Vector3 currentV = rb.linearVelocity;
+             currentV.x = 0f; 
+             rb.linearVelocity = currentV;
+        }
+
+        if (Time.frameCount % 10 == 0)
+        {
+
+            Debug.Log($"thr={input.Throttle:F3} br={input.Brake:F3} st={input.Steer:F3} target={targetForwardSpeed:F2} velZ={rb.linearVelocity.z:F2}");
+        }
     }
 }
