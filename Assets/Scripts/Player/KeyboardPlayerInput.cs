@@ -12,7 +12,7 @@ public class KeyboardPlayerInput : MonoBehaviour, IPlayerInput
     [Header("Smoothing")]
     public float steerResponse = 8f; // higher = snappier
     private float steerSmoothed;
-    
+
     // Backing fields
     private float _throttle;
     private float _brake;
@@ -41,7 +41,7 @@ public class KeyboardPlayerInput : MonoBehaviour, IPlayerInput
             steerResponse * Time.deltaTime
         );
         _steer = steerSmoothed;
-        
+
         // Debugging (Optional)
         // Debug.Log($"[INPUT] T:{_throttle} B:{_brake} S:{_steer}");
     }
