@@ -61,13 +61,24 @@ public class PlayerCarMotor : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (input == null) return;
+        if (input == null)
+        {
+            if (Time.frameCount % 120 == 0)
+                Debug.LogWarning("[PlayerCarMotor] input is NULL! Cannot move car.");
+            return;
+        }
 
         // 1) Forward speed control
         float throttle = input.Throttle;
         float brake = input.Brake;
 
         float curForward = Vector3.Dot(rb.linearVelocity, Vector3.forward);
+        
+        // Debug every 60 fixed frames
+        if (Time.frameCount % 60 == 0)
+        {
+            Debug.Log($"[PlayerCarMotor] Throttle={throttle:F2}, Brake={brake:F2}, curSpeed={curForward:F2}, targetSpeed={targetForwardSpeed:F2}, velocity={rb.linearVelocity}");
+        }
 
         if (throttle > 0f)
             targetForwardSpeed += accel * throttle * Time.fixedDeltaTime;
@@ -113,12 +124,6 @@ public class PlayerCarMotor : MonoBehaviour
              Vector3 currentV = rb.linearVelocity;
              currentV.x = 0f; 
              rb.linearVelocity = currentV;
-        }
-
-        if (Time.frameCount % 10 == 0)
-        {
-
-            Debug.Log($"thr={input.Throttle:F3} br={input.Brake:F3} st={input.Steer:F3} target={targetForwardSpeed:F2} velZ={rb.linearVelocity.z:F2}");
         }
     }
 }

@@ -12,6 +12,17 @@
 # Memory captures
 [Mm]emoryCaptures/
 
+# Asset meta data should be kept
+![Aa]ssets/**/*.meta
+
+# Auto-generated Unity files
+ExportedObj/
+.consulo/
+
+# Unity temp folders
+.utmp/
+*.tmp.meta
+
 # =========================
 # Visual Studio / Rider
 # =========================
@@ -65,11 +76,20 @@ sysinfo.txt
 *.unitypackage
 *.xcodeproj
 *.xcworkspace
+*.ipa
+*.symbols.zip
 
 # =========================
-# IL2CPP
+# IL2CPP & Burst
 # =========================
 il2cppOutput/
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+*_DoNotShip/
+TrafficRacing_BurstDebugInformation_DoNotShip/
+
+# Build folders
+build_*/
+Build_*/
 
 # =========================
 # Shader cache

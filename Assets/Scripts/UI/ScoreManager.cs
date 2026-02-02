@@ -31,8 +31,16 @@ public class ScoreManager : MonoBehaviour
     float startZ;
     float bestDistance;
 
+    void Awake()
+    {
+        // ScoreManager initialized
+    }
+
     void Start()
     {
+        Debug.Log($"ScoreManager Start - player: {player}, spawner: {spawner}, playerRb: {playerRb}");
+        Debug.Log($"ScoreManager Start - scoreText: {scoreText}, speedText: {speedText}, distanceText: {distanceText}");
+        
         if (player == null || spawner == null)
         {
             Debug.LogError("ScoreManager: player/spawner not assigned.");
@@ -43,6 +51,8 @@ public class ScoreManager : MonoBehaviour
 
         startZ = player.position.z;
         bestDistance = 0f;
+        
+        Debug.Log($"ScoreManager initialized - startZ: {startZ}");
 
         RefreshScoreUI();
         RefreshSpeedUI(0f);
@@ -54,6 +64,14 @@ public class ScoreManager : MonoBehaviour
         UpdateScore();
         UpdateSpeedUI();
         UpdateDistanceUI();
+        
+        // Debug every 60 frames
+        if (Time.frameCount % 60 == 0 && playerRb != null && player != null)
+        {
+            float speedMs = Vector3.Dot(playerRb.linearVelocity, Vector3.forward);
+            float dist = player.position.z - startZ;
+            Debug.Log($"[ScoreManager] Speed: {speedMs:F2} m/s ({speedMs*3.6f:F1} km/h), Distance: {dist:F1} m, PlayerZ: {player.position.z:F2}");
+        }
     }
 
     void UpdateScore()

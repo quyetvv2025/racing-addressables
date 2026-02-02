@@ -19,8 +19,18 @@ public class MobilePlayerInput : MonoBehaviour, IPlayerInput, IPointerDownHandle
     public float Brake => brakeHeld ? 1f : 0f;
     public float Steer => steer;
 
+    void Start()
+    {
+        Debug.Log($"[MobilePlayerInput] Started on '{gameObject.name}'");
+    }
+
     void Update()
     {
+        // Log input state periodically (every 60 frames)
+        if (Time.frameCount % 60 == 0)
+        {
+            Debug.Log($"[MobilePlayerInput] gasHeld={gasHeld}, brakeHeld={brakeHeld}, steer={steer:F2}");
+        }
         // return to center when no swipe
         if (!pointerDown)
             steer = Mathf.MoveTowards(steer, 0f, steerReturnSpeed * Time.deltaTime);
