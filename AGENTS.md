@@ -1,195 +1,91 @@
 # AGENTS.md - Traffic Racing Unity Project
 
-This document provides coding guidelines and conventions for AI agents working on the Traffic Racing Unity game project.
+Guidelines for AI agents working on this Unity 6000.0.65f1 C# racing game.
 
 ## Project Overview
 
-**Traffic Racing** is a 3D mobile endless runner racing game built with Unity 6000.0.65f1. Players control a car avoiding traffic on a 3-lane endless road, collecting score by passing traffic cars.
-
-- **Language:** C# 9.0
-- **Target:** .NET Standard 2.1
-- **Build Targets:** Android (primary), iOS, PC
-- **Rendering:** Universal Render Pipeline (URP) 17.0.4
-- **Input:** Unity Input System 1.17.0
-- **Codebase Size:** ~1,000 LOC (11 custom scripts)
+- **Game:** 3D mobile endless runner - avoid traffic on 3-lane road
+- **Language:** C# 9.0 / .NET Standard 2.1
+- **Platforms:** Android (primary), iOS, PC
+- **Rendering:** URP 17.0.4, Input System 1.17.0
+- **Scripts:** `Assets/Scripts/` (~11 files, ~1000 LOC)
 
 ## Build, Test, and Run Commands
 
-### Building in Unity Editor
-
-Unity projects are typically built through the Unity Editor UI, not command line:
-
-1. Open project in Unity Hub (Unity 6000.0.65f1)
-2. `File > Build Settings` or use Build Profiles in `Assets/Settings/Build Profiles/`
-3. Select platform (Android, iOS, or PC)
-4. Click "Build" or "Build and Run"
-
-**Build profiles configured:**
-- Mobile (Android/iOS) - Uses IL2CPP scripting backend
-- PC - Development builds
-
-**Build artifacts:**
-- Android: `.apk` or `.aab` files
-- iOS: Xcode project in `build_ios2/`
+### Building
+Unity projects build through the Editor UI, not CLI:
+1. Open in Unity Hub (6000.0.65f1)
+2. `File > Build Settings` or use profiles in `Assets/Settings/Build Profiles/`
+3. Select platform and click "Build"
 
 ### Testing
+**Framework:** Unity Test Framework 1.6.0 (NUnit-based)
 
-**Test Framework:** Unity Test Framework 1.6.0 (NUnit-based)
+```bash
+# Run all tests (EditMode)
+Unity -runTests -testPlatform EditMode -projectPath .
 
-**Note:** No test files currently exist in the project. To add tests:
+# Run all tests (PlayMode)
+Unity -runTests -testPlatform PlayMode -projectPath .
 
-1. Create test directories:
-   ```
-   Assets/Tests/EditMode/     # Editor/unit tests
-   Assets/Tests/PlayMode/     # Runtime/integration tests
-   ```
+# Run single test class
+Unity -runTests -testPlatform EditMode -testFilter "TestClassName"
 
-2. Add assembly definition files (.asmdef) referencing:
-   - `UnityEngine.TestRunner`
-   - `UnityEditor.TestRunner` (for EditMode)
-   - `nunit.framework`
-
-3. Run tests via Unity Editor:
-   - `Window > General > Test Runner`
-   - Or use Unity command line: `Unity -runTests -testPlatform EditMode`
-
-**To run a single test:**
-- In Test Runner window: Right-click test > "Run"
-- Command line not commonly used for single tests in Unity
-
-### Linting / Code Analysis
-
-**Static Analysis:**
-- Microsoft.Unity.Analyzers (configured in `.csproj`)
-- Unity Source Generators (automatic)
-- Warnings suppressed: `0169` (unused field), `USG0001`
-
-**No custom linting tools** (no ESLint/Prettier equivalent configured)
-
-**IDE Integration:**
-- Visual Studio Code with "Visual Studio Tools for Unity" extension
-- JetBrains Rider support available
-- IntelliSense/code completion enabled
-
-### Logging & Debugging
-
-**Console logging patterns:**
-```csharp
-// Debug logging (removed in production builds)
-Debug.Log($"[ClassName] message with {variable}");
-Debug.LogWarning("[ClassName] warning message");
-Debug.LogError("ClassName: error message");
-
-// Periodic debugging (every N frames)
-if (Time.frameCount % 60 == 0)
-    Debug.Log($"[ClassName] Status: {value:F2}");
+# Run single test method
+Unity -runTests -testPlatform EditMode -testFilter "TestClassName.TestMethodName"
 ```
 
-**Visual debugging:**
-```csharp
-Debug.DrawRay(origin, direction * distance, Color.green);  // Scene view only
-```
+**In Editor:** `Window > General > Test Runner` - right-click test to run individually.
+
+**Test structure:** Create `Assets/Tests/EditMode/` and `Assets/Tests/PlayMode/` with `.asmdef` files.
+
+### Linting
+- **Static Analysis:** Microsoft.Unity.Analyzers (via `.csproj`)
+- **Suppressed warnings:** `0169`, `USG0001`
+- **IDE:** VS Code with Unity Tools extension, or JetBrains Rider
 
 ## Code Style Guidelines
 
-### File Organization
+### Naming Conventions
+```csharp
+public class PlayerCarMotor { }      // PascalCase: classes
+public float maxSpeed = 45f;         // camelCase: public/private fields
+public float MaxSpeed => maxSpeed;   // PascalCase: properties
+public void MoveForward() { }        // PascalCase: methods
+const float GRAVITY = 9.81f;         // UPPER_CASE: constants
+```
 
-**Directory Structure:**
+### File Organization
 ```
 Assets/Scripts/
-├── Player/         # Player car controls
-├── Traffic/        # Traffic spawning and AI
-├── Road/           # Road generation
-├── UI/             # UI managers
-└── Core/           # Core systems (camera, etc.)
+  Player/    - PlayerCarMotor.cs, IPlayerInput.cs, *PlayerInput.cs
+  Traffic/   - TrafficSpawner.cs, TrafficPool.cs, TrafficCar.cs
+  Road/      - RoadManager.cs
+  UI/        - ScoreManager.cs, HoldButton.cs
+  Core/      - ChaseCamera.cs
 ```
+- One public class per file, filename matches class name
 
-**Naming Conventions:**
-- Scripts: `PascalCase.cs` (e.g., `PlayerCarMotor.cs`)
-- One public class per file
-- File name matches primary class name
-
-### C# Coding Conventions
-
-**Naming:**
-```csharp
-public class PlayerCarMotor        // PascalCase for classes
-{
-    public float maxSpeed = 45f;   // camelCase for public fields
-    private Rigidbody rb;          // camelCase for private fields
-    
-    public float MaxSpeed => maxSpeed;  // PascalCase for properties
-    
-    public void MoveForward() { }  // PascalCase for methods
-    
-    const float GRAVITY = 9.81f;   // UPPER_CASE for constants (if used)
-}
-```
-
-**Field Ordering:**
-1. Serialized fields (with `[Header]` attributes)
+### Field Ordering (in class)
+1. Serialized fields with `[Header]` attributes
 2. Private fields
 3. Properties
-4. Unity lifecycle methods (`Awake`, `Start`, `Update`, `FixedUpdate`)
+4. Unity lifecycle (`Awake`, `Start`, `Update`, `FixedUpdate`, `LateUpdate`)
 5. Public methods
 6. Private methods
 
-**Header Attributes:**
+### Import Order
 ```csharp
-[Header("References")]
-public Transform player;
-public Rigidbody playerRb;
-
-[Header("Speed Settings")]
-public float maxSpeed = 45f;
-public float acceleration = 18f;
-
-[Tooltip("Custom gravity force applied to car")]
-public float customGravity = 15f;
-```
-
-### Type Declarations
-
-**Prefer explicit types:**
-```csharp
-// Good
-Rigidbody rb = GetComponent<Rigidbody>();
-float speed = 45f;
-
-// Avoid
-var rb = GetComponent<Rigidbody>();  // OK for obvious types
-var x = CalculateComplexValue();    // Avoid when type unclear
-```
-
-**Null safety:**
-```csharp
-// Early validation in Awake/Start
-if (player == null)
-{
-    Debug.LogError("PlayerCarMotor: player not assigned.");
-    enabled = false;  // Disable component
-    return;
-}
-
-// Null checks before use
-if (input != null)
-{
-    float throttle = input.Throttle;
-}
-```
-
-**Collections:**
-```csharp
-// Use readonly when possible
-private readonly List<TrafficCar> active = new List<TrafficCar>();
-public IReadOnlyList<TrafficCar> ActiveCars => active;
+using UnityEngine;         // 1. Unity namespaces
+using TMPro;               // 2. Third-party
+using System.Collections;  // 3. System namespaces
 ```
 
 ### Formatting
+- **Indentation:** Tabs
+- **Braces:** Always use, even for single-line blocks
+- **Spacing:** Space after `if`/`for`/`while`, no space before method parens
 
-**Indentation:** Tabs (as per `.csproj` generation)
-
-**Braces:** Always use braces, even for single-line blocks
 ```csharp
 // Good
 if (condition)
@@ -201,201 +97,107 @@ if (condition)
 if (condition) DoSomething();
 ```
 
-**Spacing:**
+### Type Declarations
 ```csharp
-// Space after control flow keywords
-if (condition) { }
-for (int i = 0; i < count; i++) { }
-while (running) { }
+// Prefer explicit types
+Rigidbody rb = GetComponent<Rigidbody>();
+float speed = 45f;
 
-// No space for method calls
-DoSomething(param1, param2);
+// var OK only when type is obvious
+var car = GetComponent<TrafficCar>();
 ```
 
-### Import/Using Statements
-
-**Order:**
-1. Unity namespaces
-2. System namespaces
-3. Third-party namespaces
-4. Project namespaces
-
-**Example:**
+### Error Handling
 ```csharp
-using UnityEngine;
-using TMPro;
-using System.Collections.Generic;
+void Start()
+{
+    if (player == null || pool == null)
+    {
+        Debug.LogError("TrafficSpawner: player/pool not assigned.");
+        enabled = false;  // Disable component
+        return;
+    }
+}
+
+// Null checks before use
+if (scoreText != null)
+    scoreText.text = $"SCORE: {score}";
 ```
+- No try-catch - use `Debug.LogError` and disable components
+- Validate references in `Start()`/`Awake()`
 
-**Avoid unused imports** (IDE will gray them out)
-
-### Unity-Specific Patterns
-
-**MonoBehaviour lifecycle:**
+### Unity Patterns
 ```csharp
-void Awake()    // Component initialization, GetComponent calls
-void Start()    // Scene-level initialization, requires other objects ready
-void Update()   // Per-frame logic, input handling, UI updates
-void FixedUpdate()  // Physics updates, Rigidbody manipulation
-void LateUpdate()   // Camera following, after all Updates
-```
+// Cache components in Awake
+private Rigidbody rb;
+void Awake() { rb = GetComponent<Rigidbody>(); }
 
-**Rigidbody manipulation:**
-```csharp
-// Always use in FixedUpdate
+// Physics in FixedUpdate only
 void FixedUpdate()
 {
     rb.linearVelocity = newVelocity;  // Unity 6+ API
     rb.AddForce(force, ForceMode.Acceleration);
 }
-```
 
-**Component references:**
-```csharp
-// Cache in Awake/Start
-private Rigidbody rb;
-void Awake() { rb = GetComponent<Rigidbody>(); }
-
-// Public references assigned in Inspector
+// Inspector references with Header
 [Header("References")]
 public Transform player;
+public TrafficPool pool;
 ```
 
-**Physics materials:**
+### Logging
 ```csharp
-// Create at runtime when needed
-PhysicsMaterial mat = new PhysicsMaterial("CarPhysics");
-mat.bounciness = 0.3f;
-mat.frictionCombine = PhysicsMaterialCombine.Minimum;
-GetComponent<Collider>().material = mat;
+Debug.Log($"[ClassName] message: {value}");
+Debug.LogWarning("[ClassName] warning");
+Debug.LogError("ClassName: critical error");
+
+// Periodic debug (every N frames)
+if (Time.frameCount % 60 == 0)
+    Debug.Log($"[PlayerCarMotor] Speed: {speed:F2}");
 ```
 
-### Error Handling
-
-**Validation approach:**
+### Collections & Performance
 ```csharp
-void Start()
-{
-    if (player == null || spawner == null)
-    {
-        Debug.LogError("ScoreManager: player/spawner not assigned.");
-        enabled = false;  // Disable component to prevent errors
-        return;
-    }
-}
+// Readonly collections, expose as IReadOnly
+private readonly List<TrafficCar> active = new List<TrafficCar>();
+public IReadOnlyList<TrafficCar> ActiveCars => active;
+
+// Object pooling (see TrafficPool.cs)
+TrafficCar car = pool.Get();
+pool.Return(car);
+
+// Avoid per-frame allocations
+for (int i = 0; i < list.Count; i++) { }  // Not foreach or LINQ
 ```
 
-**Null propagation:**
-```csharp
-// Safe UI updates
-if (scoreText != null)
-    scoreText.text = $"SCORE: {score}";
-```
-
-**No try-catch blocks** in current codebase - Unity uses error logging instead
-
-### Comments and Documentation
-
-**XML documentation for public APIs:**
-```csharp
-/// <summary>
-/// Checks if car is grounded, returns distance to ground
-/// </summary>
-bool IsGrounded(out float distanceToGround)
-```
-
-**Inline comments for complex logic:**
-```csharp
-// Apply gravity
-if (useCustomGravity)
-{
-    // Custom gravity - stronger to keep car on road
-    rb.AddForce(Vector3.down * customGravity, ForceMode.Acceleration);
-}
-```
-
-**Use Vietnamese for internal documentation when appropriate** (as seen in SETUP_GUIDE.md)
-
-## Unity-Specific Considerations
-
-### Layers and Tags
+## Physics & Layers
 
 **Configured Layers:**
-- Layer 6: `Player`
-- Layer 7: `Traffic`
-- Layer 8: `Wall`
-- Layer 9: `Road`
+- 6: `Player`, 7: `Traffic`, 8: `Wall`, 9: `Road`
 
-**LayerMask usage:**
 ```csharp
-public LayerMask roadLayer = ~0;  // Default: all layers
-public LayerMask carLayer = ~0;
+public LayerMask roadLayer = ~0;
+Physics.Raycast(origin, Vector3.down, out hit, distance, roadLayer);
 
-// In Physics.Raycast
-Physics.Raycast(origin, direction, out hit, distance, roadLayer);
-```
-
-### Physics Configuration
-
-**Important settings (ProjectSettings/DynamicsManager.asset):**
-- Gravity: -9.81 (standard)
-- Custom gravity system implemented in `PlayerCarMotor`
-- Collision matrix configured for Player/Traffic/Road interactions
-
-**Rigidbody setup:**
-```csharp
+// Rigidbody setup
 rb.interpolation = RigidbodyInterpolation.Interpolate;
 rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
-rb.constraints = RigidbodyConstraints.FreezeRotationX | 
-                 RigidbodyConstraints.FreezeRotationZ;
+rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
 ```
 
-### Performance Patterns
+## Common Patterns
 
-**Object pooling:**
 ```csharp
-// See TrafficPool.cs for implementation
-TrafficCar car = pool.Get();    // Reuse instead of Instantiate
-pool.Return(car);               // Return instead of Destroy
-```
+// Interface-based input
+public interface IPlayerInput { float Throttle { get; } float Steer { get; } }
 
-**Avoid per-frame allocations:**
-```csharp
-// Good: reuse list
-private readonly List<TrafficCar> active = new List<TrafficCar>();
-
-// Avoid: new allocation per frame
-for (int i = 0; i < spawner.ActiveCars.Count; i++)  // Use Count, not .ToArray()
-```
-
-## Common Patterns in This Codebase
-
-### Interface-based input abstraction:
-```csharp
-public interface IPlayerInput
-{
-    float Throttle { get; }
-    float Brake { get; }
-    float Steer { get; }
-}
-```
-
-### String interpolation for UI:
-```csharp
+// String interpolation for UI
 scoreText.text = $"SCORE: {score}";
-speedText.text = $"SPEED: {kmh:0} km/h";  // Format specifiers
-distanceText.text = $"DIST: {meters:0} m";
-```
+speedText.text = $"SPEED: {kmh:0} km/h";
 
-### Smooth value transitions:
-```csharp
-// Exponential smoothing
-speedSmoothed = Mathf.Lerp(speedSmoothed, target, 
-                           1f - Mathf.Exp(-smoothSpeed * Time.deltaTime));
+// Smooth transitions
+value = Mathf.Lerp(value, target, 1f - Mathf.Exp(-speed * Time.deltaTime));
 ```
 
 ---
-
-**Last Updated:** February 2026  
-**Unity Version:** 6000.0.65f1  
-**For questions or updates:** See README.md or SETUP_GUIDE.md
+**Unity Version:** 6000.0.65f1 | **Last Updated:** February 2026
