@@ -1740,15 +1740,14 @@ MonoBehaviour:
   spawnDistanceAhead: {x: 90, y: 140}
   minSpawnDistanceFromPlayer: 80
   minGapSameLane: 24
-  maxCarsActive: 14
+  maxCarsActive: 5
   clearPassedDistance: 35
   minSpeedPctOfPlayerMax: 0.55
   maxSpeedPctOfPlayerMax: 0.9
   playerMaxSpeed: 45
   speedEpsilon: 0.5
-  spawnAttemptsPerTick: 8
   spawnInterval: 1
-  logSpawnDebug: 0
+  logSpawnDebug: 1
 --- !u!1 &1723257773
 GameObject:
   m_ObjectHideFlags: 0

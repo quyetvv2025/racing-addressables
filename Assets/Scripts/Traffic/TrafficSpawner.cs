@@ -28,8 +28,7 @@ public class TrafficSpawner : MonoBehaviour
     public float playerMaxSpeed = 45f;
 
 	[Header("Safety")]
-	public float speedEpsilon = 0.5f;   // m/s: để tạo chênh nhẹ, tránh “dính” bằng nhau gây rung
-	public int spawnAttemptsPerTick = 5;
+	public float speedEpsilon = 0.5f;   // m/s: để tạo chênh nhẹ, tránh "dính" bằng nhau gây rung
 	public float spawnInterval = 1f;
 	[Tooltip("Bật log để theo dõi spawn")] public bool logSpawnDebug;
 
@@ -45,41 +44,54 @@ public class TrafficSpawner : MonoBehaviour
             enabled = false;
             return;
         }
+
+		TrafficSpawner[] spawners = FindObjectsByType<TrafficSpawner>(FindObjectsSortMode.None);
+		if (spawners.Length > 1)
+		{
+			Debug.LogWarning($"[TrafficSpawner] Phat hien {spawners.Length} TrafficSpawner trong scene. Gioi han maxCarsActive ap dung theo toan scene.");
+		}
     }
 
 	void Update()
 	{
-		float nearAhead = Mathf.Min(spawnDistanceAhead.x, spawnDistanceAhead.y);
-		float farAhead = Mathf.Max(spawnDistanceAhead.x, spawnDistanceAhead.y);
-		DespawnPassed(farAhead);
-
-		int aheadCount = CountAheadCars();
-		if (aheadCount >= maxCarsActive)
-		{
-			if (logSpawnDebug && Time.frameCount % 90 == 0)
-			{
-				Debug.Log($"[TrafficSpawner] Đã đủ xe phía trước ({aheadCount}/{maxCarsActive}), không spawn.");
-			}
-			return;
-		}
+		DespawnPassed();
 
 		if (Time.time < nextSpawnTime)
 		{
 			return;
 		}
 
-		TrySpawnOnce(nearAhead, farAhead, aheadCount);
+		if (!CanSpawn())
+		{
+			if (logSpawnDebug && Time.frameCount % 90 == 0)
+			{
+				int aheadCount = CountAheadCarsGlobal();
+				Debug.Log($"[TrafficSpawner] Đã đủ xe phía trước ({aheadCount}/{maxCarsActive}), không spawn.");
+			}
+			return;
+		}
+
+		TrySpawnOnce();
 		nextSpawnTime = Time.time + spawnInterval;
 	}
 
-	void TrySpawnOnce(float nearAhead, float farAhead, int aheadCount)
+	bool CanSpawn()
 	{
-		float far = Mathf.Max(nearAhead, farAhead);
-		float spawnZ = player.position.z + Mathf.Max(far, minSpawnDistanceFromPlayer);
+		return CountAheadCarsGlobal() < maxCarsActive;
+	}
 
-		int bestLane = -1;
+	float CalculateSpawnZ()
+	{
+		float farAhead = Mathf.Max(spawnDistanceAhead.x, spawnDistanceAhead.y);
+		return player.position.z + Mathf.Max(farAhead, minSpawnDistanceFromPlayer);
+	}
+
+	int FindBestLane(float spawnZ, out float chosenSpeed)
+	{
+		chosenSpeed = 0f;
+
+		int laneIndex = -1;
 		float bestGap = -1f;
-		float chosenSpeed = 0f;
 
 		for (int lane = 0; lane < laneCount; lane++)
 		{
@@ -91,10 +103,23 @@ public class TrafficSpawner : MonoBehaviour
 			if (gapScore > bestGap)
 			{
 				bestGap = gapScore;
-				bestLane = lane;
+				laneIndex = lane;
 				chosenSpeed = speed;
 			}
 		}
+
+		return laneIndex;
+	}
+
+	void TrySpawnOnce()
+	{
+		if (!CanSpawn())
+		{
+			return;
+		}
+
+		float spawnZ = CalculateSpawnZ();
+		int bestLane = FindBestLane(spawnZ, out float chosenSpeed);
 
 		if (bestLane == -1)
 		{
@@ -106,13 +131,13 @@ public class TrafficSpawner : MonoBehaviour
 		}
 
 		TrafficCar spawned = SpawnAt(bestLane, spawnZ, chosenSpeed);
-		if (CountAheadCars() > maxCarsActive)
+		if (CountAheadCarsGlobal() > maxCarsActive)
 		{
 			active.Remove(spawned);
 			pool.Return(spawned);
 			if (logSpawnDebug)
 			{
-				Debug.Log("[TrafficSpawner] Hủy spawn vì vượt quá giới hạn xe phía trước.");
+				Debug.Log("[TrafficSpawner] Rollback spawn do vuot gioi han xe ahead toan scene.");
 			}
 		}
 	}
@@ -190,7 +215,7 @@ public class TrafficSpawner : MonoBehaviour
 		return car;
 	}
 
-	void DespawnPassed(float farAhead)
+	void DespawnPassed()
 	{
 		float cutoffBehindZ = player.position.z - clearPassedDistance;
 
@@ -208,17 +233,26 @@ public class TrafficSpawner : MonoBehaviour
 		}
 	}
 
-	int CountAheadCars()
+	int CountAheadCarsGlobal()
 	{
 		float playerZ = player.position.z;
 		int count = 0;
-		for (int i = 0; i < active.Count; i++)
+		TrafficCar[] allCars = FindObjectsByType<TrafficCar>(FindObjectsSortMode.None);
+		for (int i = 0; i < allCars.Length; i++)
 		{
-			var c = active[i];
-			if (c == null || !c.gameObject.activeSelf) continue;
+			TrafficCar c = allCars[i];
+			if (c == null || !c.gameObject.activeSelf)
+			{
+				continue;
+			}
+
 			float dz = c.transform.position.z - playerZ;
-			if (dz >= 0f) count++;
+			if (dz >= 0f)
+			{
+				count++;
+			}
 		}
+
 		return count;
 	}
 
